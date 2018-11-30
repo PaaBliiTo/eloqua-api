@@ -1,12 +1,12 @@
 var request = require('request');
 var async = require('async');
 
-function EloquaAPI(pod, site, user, password) {
+function Eloqua(pod, site, user, password) {
 	this.baseUrl = 'https://secure.'+pod+'.eloqua.com';
   this.credential = Buffer.from(site + "\\" + user + ":" + password).toString('base64')
 }
 
-EloquaAPI.prototype.request = function(url, options, callback) {
+Eloqua.prototype.request = function(url, options, callback) {
 	var _this = this;
 	var requestOptions = { url: _this.baseUrl + url, headers: { Authorization: "Basic " + _this.credential }, json: true };
   for (var key in options) {
@@ -23,25 +23,25 @@ EloquaAPI.prototype.request = function(url, options, callback) {
 
 /* STANDARD API REQUESTS */
 
-EloquaAPI.prototype.get = function(uri, callback) {
+Eloqua.prototype.get = function(uri, callback) {
 	this.request(uri, null, callback);
 };
 
-EloquaAPI.prototype.put = function(uri, data, callback) {
+Eloqua.prototype.put = function(uri, data, callback) {
 	this.request(uri, { method: "PUT", body: data }, callback);
 };
 
-EloquaAPI.prototype.post = function(uri, data, callback) {
+Eloqua.prototype.post = function(uri, data, callback) {
 	this.request(uri, { method : "POST", body: data }, callback);
 };
 
-EloquaAPI.prototype.delete = function(uri, callback) {
+Eloqua.prototype.delete = function(uri, callback) {
 	this.request(uri, { method: "DELETE" }, callback);
 };
 
 /* ACCOUNT FUNCTIONS */
 
-EloquaAPI.prototype.getAccounts = function(ids, callback) {
+Eloqua.prototype.getAccounts = function(ids, callback) {
 
   // Check of the ids parameter
   if(typeof ids === 'undefined' || !ids.length || !ids.every(function(i){ return Number.isInteger(i) })) {
@@ -68,7 +68,7 @@ EloquaAPI.prototype.getAccounts = function(ids, callback) {
   })
 }
 
-EloquaAPI.prototype.searchAccounts = function(criteria, field, complete, callback) {
+Eloqua.prototype.searchAccounts = function(criteria, field, complete, callback) {
 
   // Check of the criteria parameter
   if(typeof criteria !== 'string'){
@@ -84,9 +84,10 @@ EloquaAPI.prototype.searchAccounts = function(criteria, field, complete, callbac
 
       // x is the object that will be returned in the callback
       let x = {};
-
       x.elements = r.elements;
       x.total = r.total;
+
+      // Checks if some results are on other pages and calculates the number of total pages
       if(r.total > r.page * r.pageSize){
         let np = r.total / r.pageSize
         if(!Number.isInteger(np)){
@@ -96,6 +97,8 @@ EloquaAPI.prototype.searchAccounts = function(criteria, field, complete, callbac
         for(i=1; i < np; i++){
           p.push(i+1)
         }
+
+        // Get all the different pages and build the x variable
         async.map(p, (k, cb) => {
           this.get(url + "&page=" + k, (e,r) => {
             if(e) throw e;
@@ -122,16 +125,20 @@ EloquaAPI.prototype.searchAccounts = function(criteria, field, complete, callbac
   })
 }
 
-EloquaAPI.prototype.getAllAccounts = function(callback) {
-  this.get("/api/REST/1.0/data/accounts", (e,r) => {
+Eloqua.prototype.getAllAccounts = function(callback) {
+
+  // Builds the URL
+  let url = "/api/REST/1.0/data/accounts";
+  this.get(url, (e,r) => {
     if(e) throw e;
     if(r) {
 
       // x is the object that will be returned in the callback
       let x = {};
-
       x.elements = r.elements;
       x.total = r.total;
+
+      // Checks if some results are on other pages and calculates the number of total pages
       if(r.total > r.page * r.pageSize){
         let np = r.total / r.pageSize
         if(!Number.isInteger(np)){
@@ -141,6 +148,119 @@ EloquaAPI.prototype.getAllAccounts = function(callback) {
         for(i=1; i < np; i++){
           p.push(i+1)
         }
+
+        // Get all the different pages and build the x variable
+        async.map(p, (k, cb) => {
+          this.get(url + "?page=" + k, (e,r) => {
+            if(e) throw e;
+            if(r) {
+              cb(null, r.elements)
+            }
+            else {
+              cb(null)
+            }
+          })
+        }, (e, res) => {
+          for(i in res) {
+            for(k in res[i]) {
+              x.elements.push(res[i][k])
+            }
+          }
+          callback(x)
+        })
+      }
+      else{
+        callback(x);
+      }
+    }
+  })
+}
+
+Eloqua.prototype.deleteAccounts = function(ids, callback) {
+  // Check of the ids parameter
+  if(typeof ids === 'undefined' || !ids.length || !ids.every(function(i){ return Number.isInteger(i) })) {
+    let e = new Error("ids must be an array of integers");
+    throw e;
+  }
+  
+  // Makes a call for every id provided, then deletes the accounts
+  async.map(ids, (id, cb) => {
+    this.delete("/api/REST/1.0/data/account/" + id, (e,r) => {
+      if(e) throw e;
+      if(r){
+        cb(null, r)
+      }
+    })
+  }, (e, res) => {
+    if(e) throw e;
+    callback();
+  })
+}
+
+
+
+
+
+/* CONTACT FUNCTIONS */
+
+Eloqua.prototype.getContacts = function(ids, callback) {
+  // Check of the ids parameter
+  if(typeof ids === 'undefined' || !ids.length || !ids.every(function(i){ return Number.isInteger(i) })) {
+    let e = new Error("ids must be an array of integers");
+    throw e;
+  }
+  
+  // Makes a call for every id provided, then builds the response and pass it in the callback
+  async.map(ids, (id, cb) => {
+    this.get("/api/REST/1.0/data/contact/" + id, (e,r) => {
+      if(e) throw e;
+      if(r){
+        cb(null, r)
+      }
+      else{
+        cb(null)
+      }
+    })
+  }, (e, res) => {
+    var f = res.filter(function (el) {
+      return el != null;
+    });
+    callback(f);
+  })
+}
+
+Eloqua.prototype.searchContacts = function(criteria, field, complete, callback) {
+
+  // Criteria parameter check
+  if(typeof criteria !== 'string'){
+    let e = new Error("criteria must be a string");
+    throw e;
+  }
+
+  // Builds the URL depending on the input parameters
+  let url = "/api/REST/1.0/data/contacts?search=" + (typeof field === 'string' ? field + "=" : "") + criteria + "&depth=" + (typeof complete === 'boolean' && complete ? "complete" : "minimal")
+
+  this.get(url, (e,r) => {
+    if(e) throw e;
+    if(r) {
+
+      // x is the object that will be returned in the callback
+      let x = {};
+      x.elements = r.elements;
+      x.total = r.total;
+
+      // Checks if some results are on other pages and calculates the number of total pages
+      if(r.total > r.page * r.pageSize){
+        let np = r.total / r.pageSize
+        if(!Number.isInteger(np)){
+          np = Math.trunc(np) + 1
+        }
+        let p = [];
+        for(i=1; i < np; i++){
+          p.push(i+1)
+        }
+
+        // Get all the different pages and build the x variable
         async.map(p, (k, cb) => {
           this.get(url + "&page=" + k, (e,r) => {
             if(e) throw e;
@@ -167,4 +287,74 @@ EloquaAPI.prototype.getAllAccounts = function(callback) {
   })
 }
 
-module.exports = EloquaAPI;
+Eloqua.prototype.getAllContacts = function(callback) {
+
+  // Builds the URL
+  let url = "/api/REST/1.0/data/contacts";
+  this.get(url, (e,r) => {
+    if(e) throw e;
+    if(r) {
+
+      // x is the object that will be returned in the callback
+      let x = {};
+      x.elements = r.elements;
+      x.total = r.total;
+
+      // Checks if some results are on other pages and calculates the number of total pages
+      if(r.total > r.page * r.pageSize){
+        let np = r.total / r.pageSize
+        if(!Number.isInteger(np)){
+          np = Math.trunc(np) + 1
+        }
+        let p = [];
+        for(i=1; i < np; i++){
+          p.push(i+1)
+        }
+
+        // Get all the different pages and build the x variable before passing it in the callback
+        async.map(p, (k, cb) => {
+          this.get(url + "?page=" + k, (e,r) => {
+            if(e) throw e;
+            if(r) {
+              cb(null, r.elements)
+            }
+            else {
+              cb(null)
+            }
+          })
+        }, (e, res) => {
+          for(i in res) {
+            for(k in res[i]) {
+              x.elements.push(res[i][k])
+            }
+          }
+          callback(x)
+        })
+      }
+      else{
+        callback(x);
+      }
+    }
+  })
+}
+
+Eloqua.prototype.deleteContacts = function(ids, callback) {
+  // Check of the ids parameter
+  if(typeof ids === 'undefined' || !ids.length || !ids.every(function(i){ return Number.isInteger(i) })) {
+    let e = new Error("ids must be an array of integers");
+    throw e;
+  }
+  
+  // Makes a call for every id provided, then deletes the contact
+  async.map(ids, (id, cb) => {
+    this.delete("/api/REST/1.0/data/contact/" + id, (e,r) => {
+      if(e) throw e;
+      cb(null)
+    })
+  }, (e, res) => {
+    if(e) throw e;
+    callback();
+  })
+}
+
+module.exports = Eloqua;
