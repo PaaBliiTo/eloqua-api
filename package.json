@@ -1,0 +1,15 @@
+{
+  "name": "eloqua-api",
+  "version": "0.0.1",
+  "description": "A node module packing useful Eloqua API functions",
+  "main": "./src/index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "Fabio Benoit",
+  "license": "MIT",
+  "dependencies": {
+    "async": "^2.6.1",
+    "request": "^2.88.0"
+  }
+}
