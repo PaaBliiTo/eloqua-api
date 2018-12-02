@@ -1,9 +1,9 @@
 var request = require('request');
 var async = require('async');
 
-function Eloqua(pod, site, user, password) {
+function Eloqua(pod, site, username, password) {
 	this.baseUrl = 'https://secure.'+pod+'.eloqua.com';
-  this.credential = Buffer.from(site + "\\" + user + ":" + password).toString('base64')
+  this.credential = Buffer.from(site + "\\" + username + ":" + password).toString('base64')
 }
 
 Eloqua.prototype.request = function(url, options, callback) {
@@ -41,6 +41,44 @@ Eloqua.prototype.delete = function(uri, callback) {
 
 /* ACCOUNT FUNCTIONS */
 
+Eloqua.prototype.createAccounts = function(data, callback) {
+
+  // Check of the data parameter
+  if(typeof data === 'undefined' || !data.length || !data.every(function(i){ return (typeof i ==='object')})) {
+    let e = new Error("data must be an object");
+    throw e;
+  }
+  for(i in data){
+    if(!("name" in data[i])){
+      let e = new Error("\"name\" property cannot be null")
+      throw e;
+    }
+  }
+
+  // Builds the url
+  let url = "/api/REST/1.0/data/account";
+
+  // Makes a call for every data provided, then builds the response and pass it in the callback
+
+  async.map(data, (acc, cb) => {
+    this.post(url, acc, (e,r) => {
+      if(e) throw e;
+      if(r) {
+        cb(null, r)
+      }
+      else{
+        cb(null)
+      }
+    })
+  }, (e, res) => {
+    var f = res.filter(function (el) {
+      return el != null;
+    });
+    callback(f);
+  })
+  
+}
+
 Eloqua.prototype.getAccounts = function(ids, callback) {
 
   // Check of the ids parameter
@@ -61,6 +99,7 @@ Eloqua.prototype.getAccounts = function(ids, callback) {
       }
     })
   }, (e, res) => {
+    if(e) throw e;
     var f = res.filter(function (el) {
       return el != null;
     });
@@ -110,6 +149,7 @@ Eloqua.prototype.searchAccounts = function(criteria, field, complete, callback) 
             }
           })
         }, (e, res) => {
+          if(e) throw e;
           for(i in res) {
             for(k in res[i]) {
               x.elements.push(res[i][k])
@@ -161,6 +201,7 @@ Eloqua.prototype.getAllAccounts = function(callback) {
             }
           })
         }, (e, res) => {
+          if(e) throw e;
           for(i in res) {
             for(k in res[i]) {
               x.elements.push(res[i][k])
@@ -222,6 +263,7 @@ Eloqua.prototype.getContacts = function(ids, callback) {
       }
     })
   }, (e, res) => {
+    if(e) throw e;
     var f = res.filter(function (el) {
       return el != null;
     });
@@ -272,6 +314,7 @@ Eloqua.prototype.searchContacts = function(criteria, field, complete, callback) 
             }
           })
         }, (e, res) => {
+          if(e) throw e;
           for(i in res) {
             for(k in res[i]) {
               x.elements.push(res[i][k])
@@ -324,6 +367,7 @@ Eloqua.prototype.getAllContacts = function(callback) {
           })
         }, (e, res) => {
           for(i in res) {
+            if(e) throw e;
             for(k in res[i]) {
               x.elements.push(res[i][k])
             }
