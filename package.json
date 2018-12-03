@@ -2,6 +2,19 @@
   "name": "eloqua-api",
   "version": "1.0.0",
   "description": "A node module packing useful Eloqua API functions",
+  "keywords": [
+    "eloqua",
+    "eloqua api",
+    "oracle eloqua",
+    "oracle"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/PaaBliiTo/eloqua-api"
+  },
+  "bugs": {
+    "url": "https://github.com/PaaBliiTo/eloqua-api/issues"
+  },
   "main": "./src/index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
