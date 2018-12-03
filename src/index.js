@@ -244,6 +244,43 @@ Eloqua.prototype.deleteAccounts = function(ids, callback) {
 
 /* CONTACT FUNCTIONS */
 
+Eloqua.prototype.createContacts = function(data, callback) {
+
+  // Check of the data parameter
+  if(typeof data === 'undefined' || !data.length || !data.every(function(i){ return (typeof i ==='object')})) {
+    let e = new Error("data must be an object");
+    throw e;
+  }
+  for(i in data){
+    if(!("emailAddress" in data[i])){
+      let e = new Error("\"emailAddress\" property cannot be null")
+      throw e;
+    }
+  }
+
+  // Builds the url
+  let url = "/api/REST/1.0/data/contact";
+
+  // Makes a call for every data provided, then builds the response and pass it in the callback
+
+  async.map(data, (acc, cb) => {
+    this.post(url, acc, (e,r) => {
+      if(e) throw e;
+      if(r) {
+        cb(null, r)
+      }
+      else{
+        cb(null)
+      }
+    })
+  }, (e, res) => {
+    var f = res.filter(function (el) {
+      return el != null;
+    });
+    callback(f);
+  })
+}
+
 Eloqua.prototype.getContacts = function(ids, callback) {
   // Check of the ids parameter
   if(typeof ids === 'undefined' || !ids.length || !ids.every(function(i){ return Number.isInteger(i) })) {
