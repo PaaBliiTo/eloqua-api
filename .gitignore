@@ -59,3 +59,7 @@ typings/
 
 # next.js build output
 .next
+
+# Custom files
+creds.json
+test.js
