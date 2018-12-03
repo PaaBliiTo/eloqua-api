@@ -1,5 +1,9 @@
 # Eloqua Node API Helper
 
+[![NPM](https://nodei.co/npm/eloqua-api.png)](https://nodei.co/npm/eloqua-api/)
+
+[![dependencies Status](https://david-dm.org/PaaBliiTo/eloqua-api/status.svg)](https://david-dm.org/PaaBliiTo/eloqua-api)
+
 ## Table of contents
 
 - [Getting Started](#getting-started)
@@ -12,6 +16,10 @@
 ---
 
 ## Getting Started
+
+```js
+npm i eloqua-api
+```
 
 To start using the functions, require the module and initiate a new Eloqua 
 
